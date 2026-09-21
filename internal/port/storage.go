@@ -1,0 +1,13 @@
+package port
+
+import (
+	"context"
+	"io"
+)
+
+type Storage interface {
+	Upload(ctx context.Context, key string, reader io.Reader, contentType string) error
+	Download(ctx context.Context, key string) (io.ReadCloser, error)
+	Delete(ctx context.Context, key string) error
+	GetFileURL(ctx context.Context, key string) (string, error)
+}

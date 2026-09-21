@@ -1,29 +1,36 @@
-# Dockerfile profissional para a API FIAP X
-# Substitui o Dockerfile original (que continha o aviso da FIAP de ser sem boas práticas)
+# Stage 1: Build da aplicação Go
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
+# Dependências do sistema para o build
 RUN apk add --no-cache git ca-certificates tzdata
 
+# Cache de dependências
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copiar código fonte
 COPY . .
 
+# Compilar binário estático da API
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-w -s" \
     -o /app/bin/api ./cmd/api
 
+# Stage 2: Imagem final mínima e segura
 FROM alpine:3.19
 
 WORKDIR /app
 
+# Certificados SSL e timezone
 RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -S appgroup && adduser -S appuser -G appgroup
 
+# Copiar binário compilado do builder
 COPY --from=builder /app/bin/api /app/api
 
+# Permissões do usuário não-root
 USER appuser
 
 EXPOSE 8080

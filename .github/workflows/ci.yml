@@ -1,0 +1,72 @@
+name: CI - Quality & Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-coverage:
+    name: Test & Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Format & Vet Check
+        run: |
+          test -z $(gofmt -l .)
+          go vet ./...
+
+      - name: Run Tests with Race Detector & Coverage
+        run: |
+          go test -race -v -coverprofile=coverage.out ./internal/domain ./internal/application ./internal/httpapi ./internal/httpapi/handler ./internal/httpapi/middleware ./internal/adapter/memory ./internal/adapter/postgres ./internal/adapter/storage
+          go tool cover -func=coverage.out
+
+      - name: Quality Gate (Coverage >= 80%)
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Total Coverage: $COVERAGE%"
+          awk -v cov="$COVERAGE" 'BEGIN { if (cov < 80.0) { print "Cobertura abaixo de 80%: " cov "%"; exit 1 } else { print "Quality Gate Aprovado: " cov "%" } }'
+
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.out
+
+  docker-build:
+    name: Build Docker Images
+    needs: test-and-coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.api
+          push: false
+          tags: fiapx-api:latest
+
+      - name: Build Worker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.worker
+          push: false
+          tags: fiapx-worker:latest

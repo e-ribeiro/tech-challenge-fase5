@@ -1,0 +1,134 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL - Persistência relacional de usuários e jobs de vídeo
+  postgres:
+    image: postgres:16-alpine
+    container_name: fiapx-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: fiapx_videos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fiapx_videos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. RabbitMQ - Broker de mensageria assíncrona resiliente a picos
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: fiapx-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"    # Porta AMQP
+      - "15672:15672"  # Painel Web do RabbitMQ
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. MinIO - Object Storage compatível com S3 para armazenar vídeos e zips
+  minio:
+    image: minio/minio:latest
+    container_name: fiapx-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"    # API S3
+      - "9001:9001"    # Painel Web MinIO
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3.1 Criação automática do Bucket S3 no MinIO
+  createbuckets:
+    image: minio/mc:latest
+    container_name: fiapx-createbuckets
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb --ignore-existing local/fiapx-videos;
+      exit 0;
+      "
+
+  # 4. MailHog - Mock de Servidor SMTP para conferir envio de e-mails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: fiapx-mailhog
+    ports:
+      - "1025:1025"    # SMTP Server
+      - "8025:8025"    # Web UI para leitura de e-mails recebidos
+
+  # 5. FIAP X Video API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fiapx-api
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgres://postgres:postgrespassword@postgres:5432/fiapx_videos?sslmode=disable"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      S3_ENDPOINT: "minio:9000"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY: "minioadmin"
+      S3_BUCKET: "fiapx-videos"
+      S3_USE_SSL: "false"
+      JWT_SECRET: "fiapx-hackathon-fase5-secret-key-2026"
+      STORAGE_DRIVER: "postgres"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+
+  # 6. FIAP X Video Worker (Processamento ffmpeg em background)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: fiapx-worker
+    environment:
+      DATABASE_URL: "postgres://postgres:postgrespassword@postgres:5432/fiapx_videos?sslmode=disable"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      S3_ENDPOINT: "minio:9000"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY: "minioadmin"
+      S3_BUCKET: "fiapx-videos"
+      S3_USE_SSL: "false"
+      SMTP_HOST: "mailhog"
+      SMTP_PORT: "1025"
+      SMTP_FROM: "notifications@fiapx.com"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  minio_data:
