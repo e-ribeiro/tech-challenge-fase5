@@ -8,12 +8,12 @@ import (
 )
 
 type MemoryQueue struct {
-	mu           sync.Mutex
-	videoChan    chan *port.VideoProcessMessage
-	notifyChan   chan *port.NotificationMessage
-	videoMsgs    []*port.VideoProcessMessage
-	notifyMsgs   []*port.NotificationMessage
-	closed       bool
+	mu         sync.Mutex
+	videoChan  chan *port.VideoProcessMessage
+	notifyChan chan *port.NotificationMessage
+	videoMsgs  []*port.VideoProcessMessage
+	notifyMsgs []*port.NotificationMessage
+	closed     bool
 }
 
 func NewMemoryQueue(bufferSize int) *MemoryQueue {

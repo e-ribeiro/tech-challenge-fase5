@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	VideoProcessQueue      = "video.process.queue"
-	VideoProcessDLQ        = "video.process.dlq"
-	VideoProcessDLX        = "video.process.dlx"
-	NotificationQueue      = "video.notification.queue"
-	NotificationDLQ        = "video.notification.dlq"
-	NotificationDLX        = "video.notification.dlx"
+	VideoProcessQueue = "video.process.queue"
+	VideoProcessDLQ   = "video.process.dlq"
+	VideoProcessDLX   = "video.process.dlx"
+	NotificationQueue = "video.notification.queue"
+	NotificationDLQ   = "video.notification.dlq"
+	NotificationDLX   = "video.notification.dlx"
 )
 
 type RabbitMQBroker struct {

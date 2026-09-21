@@ -18,12 +18,17 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: 'stable'
           cache: true
 
       - name: Format & Vet Check
         run: |
-          test -z $(gofmt -l .)
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "Arquivos não formatados:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
           go vet ./...
 
       - name: Run Tests with Race Detector & Coverage
