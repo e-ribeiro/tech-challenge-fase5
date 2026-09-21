@@ -1,8 +1,8 @@
 # FIAP X — Sistema Distribuído de Processamento de Vídeos (Fase 5 - Hackathon)
 
-[![CI](https://github.com/e-ribeiro/projeto-fiapx/actions/workflows/ci.yml/badge.svg)](https://github.com/e-ribeiro/projeto-fiapx/actions/workflows/ci.yml)
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=e-ribeiro_projeto-fiapx&metric=alert_status)](https://sonarcloud.io/summary/overall?id=e-ribeiro_projeto-fiapx)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=e-ribeiro_projeto-fiapx&metric=coverage)](https://sonarcloud.io/summary/overall?id=e-ribeiro_projeto-fiapx)
+[![CI](https://github.com/e-ribeiro/tech-challenge-fase5/actions/workflows/ci.yml/badge.svg)](https://github.com/e-ribeiro/tech-challenge-fase5/actions/workflows/ci.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=e-ribeiro_tech-challenge-fase5&metric=alert_status)](https://sonarcloud.io/summary/overall?id=e-ribeiro_tech-challenge-fase5)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=e-ribeiro_tech-challenge-fase5&metric=coverage)](https://sonarcloud.io/summary/overall?id=e-ribeiro_tech-challenge-fase5)
 
 Este projeto é a evolução e refatoração completa da prova de conceito da **FIAP X** para uma **arquitetura de microsserviços orientada a eventos**, escalável, resiliente a picos e protegida por autenticação, atendendo rigorosamente a todos os requisitos do Hackathon da Fase 5 da Pós-Tech.
 
