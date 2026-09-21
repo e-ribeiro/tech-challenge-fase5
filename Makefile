@@ -1,4 +1,4 @@
-.PHONY: test coverage race build compose-up compose-down compose-logs k8s-apply k8s-delete
+.PHONY: test coverage race test-e2e build compose-up compose-down compose-logs k8s-apply k8s-delete
 
 # Executa todos os testes unitários
 test:
@@ -7,6 +7,10 @@ test:
 # Executa testes com detector de race conditions
 race:
 	go test -race -v ./internal/...
+
+# Executa teste ponta a ponta automatizado contra a stack Docker
+test-e2e:
+	bash scripts/test_e2e.sh
 
 # Calcula cobertura de código com relatório
 coverage:
