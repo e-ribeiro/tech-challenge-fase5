@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"video-processor/internal/application"
 	"video-processor/internal/httpapi/handler"
@@ -38,10 +39,11 @@ func SetupRouter(cfg ServerConfig) *gin.Engine {
 		c.String(http.StatusOK, GetAppHTML())
 	})
 
-	// Health Checks para Kubernetes
+	// Health Checks e Métricas Prometheus
 	healthHandler := handler.NewHealthHandler()
 	r.GET("/health/live", healthHandler.Live)
 	r.GET("/health/ready", healthHandler.Ready)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Handlers de Domínio
 	authHandler := handler.NewAuthHandler(cfg.AuthUseCase)

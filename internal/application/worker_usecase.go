@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"video-processor/internal/domain"
+	"video-processor/internal/metrics"
 	"video-processor/internal/port"
 )
 
@@ -34,6 +35,10 @@ func NewWorkerUseCase(
 }
 
 func (uc *WorkerUseCase) ProcessJob(ctx context.Context, msg *port.VideoProcessMessage) error {
+	startTime := time.Now()
+	metrics.ActiveProcessing.Inc()
+	defer metrics.ActiveProcessing.Dec()
+
 	job, err := uc.videoRepo.GetByID(ctx, msg.JobID)
 	if err != nil {
 		return fmt.Errorf("job %s não encontrado no banco: %w", msg.JobID, err)
@@ -86,6 +91,9 @@ func (uc *WorkerUseCase) ProcessJob(ctx context.Context, msg *port.VideoProcessM
 		return fmt.Errorf("falha ao atualizar status de conclusão do job: %w", err)
 	}
 
+	metrics.ProcessingDuration.Observe(time.Since(startTime).Seconds())
+	metrics.JobsProcessedTotal.WithLabelValues("COMPLETED").Inc()
+
 	// 5. Publicar evento de conclusão com sucesso
 	if uc.producer != nil && msg.UserEmail != "" {
 		_ = uc.producer.PublishNotification(ctx, &port.NotificationMessage{
@@ -120,6 +128,7 @@ func (uc *WorkerUseCase) downloadToLocal(ctx context.Context, storageKey, localP
 }
 
 func (uc *WorkerUseCase) failJob(ctx context.Context, job *domain.VideoJob, msg *port.VideoProcessMessage, reason string) {
+	metrics.JobsProcessedTotal.WithLabelValues("FAILED").Inc()
 	job.MarkFailed(reason)
 	_ = uc.videoRepo.Update(ctx, job)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"video-processor/internal/domain"
+	"video-processor/internal/metrics"
 	"video-processor/internal/port"
 )
 
@@ -76,6 +77,8 @@ func (uc *VideoUseCase) UploadVideo(ctx context.Context, input UploadVideoInput)
 		_ = uc.videoRepo.Update(ctx, job)
 		return nil, fmt.Errorf("falha ao enviar para a fila: %w", err)
 	}
+
+	metrics.UploadsTotal.Inc()
 
 	return job, nil
 }
